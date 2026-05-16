@@ -1,5 +1,5 @@
 from pydantic import SecretStr
-from typing import List, Literal
+from typing import Literal
 
 from pydantic_settings import BaseSettings
 
@@ -14,6 +14,9 @@ class Settings(BaseSettings):
   MYSQL_USER: str
   MYSQL_PASSWORD: SecretStr
   MYSQL_DATABASE: str
+
+  GEMINI_API_KEY: str | None = None
+  GEMINI_MODEL: str | None = None
 
   SQLALCHEMY_DATABASE_URI: str = ""
 

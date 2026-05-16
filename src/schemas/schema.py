@@ -109,6 +109,14 @@ class OralHealthRiskRequest(BaseModel):
         description="Free-text notes from clinical history")
 
 
+class LLMCheckupAssessment(BaseModel):
+    risk_score: int = Field(..., description="0-100 composite risk score")
+    health_grade: str = Field(..., description="e.g., 'Healthy', 'High Risk'")
+    risk_level: RiskLevel
+    disease_progression_forecast: str = Field(..., description="Likely disease progression")
+    recommended_action: str = Field(..., description="Personalized prevention plan")
+
+
 class OralHealthRiskResponse(BaseModel):
     patient_id: int
     risk_score: int = Field(..., ge=0, le=100,

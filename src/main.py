@@ -26,3 +26,5 @@ app = FastAPI(
     lifespan=life_span
 )
 
+from src.routers.patient_routes import router as patient_router
+app.include_router(patient_router)

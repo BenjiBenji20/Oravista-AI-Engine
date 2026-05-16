@@ -1,0 +1,18 @@
+{
+  "patient_id": 80,
+  "age": 35,
+  "sex": "Male",
+  "blood_type": "O+",
+  "allergies": "None",
+  "occupation": "Software Engineer",
+  "sugar_intake_score": 8,
+  "brushing_frequency": 2,
+  "flossing_frequency": 0,
+  "smoking": false,
+  "alcohol_use": true,
+  "previous_cavities": 3,
+  "previous_extractions": 0,
+  "family_history_dental_disease": true,
+  "last_dental_visit_months_ago": 18,
+  "medical_history_notes": "No major systemic conditions. Occasional bleeding gums when brushing."
+}
