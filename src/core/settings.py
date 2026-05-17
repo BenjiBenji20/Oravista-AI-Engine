@@ -10,11 +10,6 @@ class Settings(BaseSettings):
     ENV: Literal["dev", "prod", "test"] = "dev"
 
     # db settings
-    MYSQL_HOST: str
-    MYSQL_USER: str
-    MYSQL_PASSWORD: SecretStr
-    MYSQL_DATABASE: str
-
     POSTGRES_USER: str | None = None
     POSTGRES_PASSWORD: SecretStr | None = None
     POSTGRES_HOST: str | None = None
@@ -39,7 +34,5 @@ class Settings(BaseSettings):
             f"{self.POSTGRES_PORT}/"
             f"{self.POSTGRES_DATABASE}?ssl=require"
         )
-    
-
 
 settings = Settings()
