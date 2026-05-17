@@ -454,6 +454,20 @@ class User(Base):
         cascade="all, delete-orphan",
     )
     
+    # One-to-many: patient records
+    records = relationship(
+        "PatientRecord",
+        back_populates="patient",
+        cascade="all, delete-orphan",
+    )
+
+    # One-to-many: ai diagnostics
+    diagnostics = relationship(
+        "AIDiagnostic",
+        back_populates="patient",
+        cascade="all, delete-orphan",
+    )
+    
 
 class Appointment(Base):
     __tablename__ = "appointments"
