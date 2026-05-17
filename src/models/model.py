@@ -6,6 +6,7 @@ from sqlalchemy import (
     ForeignKey, UniqueConstraint, func
 )
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import JSONB
 import enum
 
 
@@ -484,3 +485,48 @@ class Appointment(Base):
         cascade="all, delete-orphan",
     )
     
+
+class PatientRecord(Base):
+    __tablename__ = "patient_records"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+    )
+    file_name = Column(String(255), nullable=False)
+    file_path = Column(String(255), nullable=False)
+    upload_date = Column(
+        DateTime(timezone=True), 
+        nullable=False, 
+        server_default=func.now()
+    )
+
+    # Relationship back to the User model
+    patient = relationship("User", back_populates="records")
+
+
+class AIDiagnostic(Base):
+    __tablename__ = "ai_diagnostics"
+
+    # Mapping 'diagnosis_id' from MySQL to 'id' for ORM consistency
+    id = Column("diagnosis_id", Integer, primary_key=True, autoincrement=True)
+    patient_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+    )
+    clinical_notes = Column(Text, nullable=True)
+    
+    # Using JSONB for optimized PostgreSQL performance
+    ai_findings = Column(JSONB, nullable=True, server_default='{}')
+    
+    scan_date = Column(
+        DateTime(timezone=True), 
+        nullable=False, 
+        server_default=func.now()
+    )
+
+    # Relationship back to the User model
+    patient = relationship("User", back_populates="diagnostics")
