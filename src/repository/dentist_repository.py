@@ -1,8 +1,11 @@
+from datetime import datetime, timezone
+from typing import Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func
-from sqlalchemy.orm import selectinload
-from src.models.model import AnalyticsPromptLog, RiskStratificationPatientRow, RiskStratificationReport, TreatmentOutcomePrediction, User, OralHealthRiskScore
+from sqlalchemy.orm import joinedload, selectinload
+from src.models.model import AnalyticsPromptLog, Appointment, NoShowPrediction, PatientAnalytics, RiskStratificationPatientRow, RiskStratificationReport, TreatmentOutcomePrediction, User, OralHealthRiskScore
 
 class DentistRepository:
     def __init__(self, db: AsyncSession):
@@ -111,4 +114,66 @@ class DentistRepository:
             )
             result = await self.db.execute(stmt)
             return list(result.scalars().all())
+        
+
+    async def get_no_show_prediction_by_appointment(self, appointment_id: int) -> Optional[NoShowPrediction]:
+        """Fetches an existing no-show assessment using relationship loaders to fetch metadata."""
+        stmt = (
+            select(NoShowPrediction)
+            .options(joinedload(NoShowPrediction.patient), joinedload(NoShowPrediction.appointment))
+            .where(NoShowPrediction.appointment_id == appointment_id)
+        )
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
+
+    async def get_appointment_context_for_prediction(self, appointment_id: int):
+        """
+        Collects comprehensive operational elements across Appointment, User, 
+        and PatientAnalytics tables in a single query execution block.
+        """
+        stmt = (
+            select(Appointment, User, PatientAnalytics)
+            .join(User, Appointment.user_id == User.id)
+            .join(PatientAnalytics, User.id == PatientAnalytics.patient_id)
+            .where(Appointment.id == appointment_id)
+        )
+        result = await self.db.execute(stmt)
+        return result.one_or_none()
+
+
+    async def save_no_show_prediction(self, prediction: NoShowPrediction) -> NoShowPrediction:
+        self.db.add(prediction)
+        await self.db.commit()
+        await self.db.refresh(prediction)
+        return prediction
+
+
+    async def get_upcoming_no_show_queue(self, branch: str) -> list:
+        """
+        Fetches all upcoming appointments for a specific branch, joining patient info 
+        and analytics context, along with any existing predictions.
+        """
+        current_date = datetime.now(timezone.utc).date()
+
+        stmt = (
+            select(Appointment)
+            .options(
+                joinedload(Appointment.patient).joinedload(User.analytics),
+                joinedload(Appointment.no_show_prediction)
+            )
+            # 1. Join the user (required)
+            .join(User, Appointment.user_id == User.id)
+            # 2. Use OUTER JOIN for analytics so rows don't disappear if analytics is missing
+            .outerjoin(PatientAnalytics, User.id == PatientAnalytics.patient_id)
+            .where(
+                # Make sure user_id 80 or 1 is actually set to UserRoleEnum.patient
+                User.role == "patient", 
+                Appointment.branch == branch
+            )
+            .order_by(Appointment.appointment_date.desc())
+        )
+        
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
         

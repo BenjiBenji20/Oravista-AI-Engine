@@ -2,9 +2,10 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.modules.no_show_prediction_service import NoShowPredictionService
 from src.database.session import get_async_db
 from src.modules.dentist_service import DentistService
-from src.schemas.schema import DentistDashboardResponse, OralHealthRiskRequest, PatientRiskSummary, RiskStratificationRequest, RiskStratificationResponse, TreatmentOutcomeDetailResponse, TreatmentOutcomeResponse
+from src.schemas.schema import DentistDashboardResponse, NoShowDashboardResponse, OralHealthRiskRequest, PatientRiskSummary, RiskStratificationRequest, RiskStratificationResponse, TreatmentOutcomeDetailResponse, TreatmentOutcomeResponse
 
 router = APIRouter(prefix="/api/dentist", tags=["Dentist Dashboard"])
 
@@ -60,3 +61,27 @@ async def get_patients_by_risk_tier(
         
     service = DentistService(db)
     return await service.get_patients_in_stratification_tier(report_id, risk_level)
+
+
+@router.post("/dashboard/predict-no-show/{appointment_id}", response_model=NoShowDashboardResponse)
+async def trigger_appointment_no_show_prediction(
+    appointment_id: int,
+    weather_risk_flag: bool = False,
+    db: AsyncSession = Depends(get_async_db)
+):
+    """Evaluates upcoming appointment operational details to calculate no-show parameters."""
+    service = NoShowPredictionService(db)
+    return await service.process_no_show_prediction(appointment_id, weather_risk=weather_risk_flag)
+
+
+@router.get("/dashboard/no-show-queue", response_model=List[NoShowDashboardResponse])
+async def get_dentist_no_show_queue(
+    branch: str = Query(default="Main Branch"),
+    db: AsyncSession = Depends(get_async_db)
+):
+    """
+    Returns a unified array of upcoming appointments containing structural 
+    appointment_ids so the dashboard can fire pinpointed AI assessments.
+    """
+    service = NoShowPredictionService(db)
+    return await service.get_branch_no_show_queue(branch)

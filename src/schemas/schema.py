@@ -338,3 +338,21 @@ class DentistDashboardResponse(BaseModel):
     dentist_id: int
     patients: List[DentistDashboardPatient]
     
+    
+# =========================
+# AGENT
+# ========================
+class LLMNoShowAssessment(BaseModel):
+    no_show_probability: float = Field(..., description="0-100 probability value")
+    risk_flag: str = Field(..., description="Must be 'Low', 'Medium', or 'High'")
+    reasoning: str = Field(..., description="Max 2 short phrases explaining top vectors, e.g., 'Missed last 2 appts, High travel distance'")
+    
+    
+class NoShowDashboardResponse(BaseModel):
+    appointment_id: int
+    time: str             # e.g., '2026-05-18 09:00 AM'
+    patient: str          # e.g., 'Elena Rodriguez'
+    probability: float    # e.g., 85.0
+    reason: str           # e.g., 'Missed last 2 appts, High travel distance'
+    status: str           # e.g., 'Reminder Sent'
+        
