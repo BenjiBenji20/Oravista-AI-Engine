@@ -30,11 +30,16 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins="http://localhost:3000", # change according to react app
+    allow_origins=[
+        "http://localhost:3000",   # React local
+        "http://localhost:5173",   # Vite local
+        "https://oravista.vercel.app", # Deployment preview
+        "https://oravista.site"
+    ],
     allow_credentials=True,
-    allow_methods=["*"], # GET, POST, PUT, DELETE, OPTIONS
-    allow_headers=["Authorization", "Content-Type"] # Authorization, Content-Type, etc.
-  )
+    allow_methods=["*"],
+    allow_headers=["*"], 
+)
 
 from src.routers.patient_routes import router as patient_router
 from src.routers.dentist_routes import router as dentist_router
