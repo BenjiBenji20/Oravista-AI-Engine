@@ -149,21 +149,43 @@ class TreatmentOutcomeRequest(BaseModel):
         description="Known conditions, e.g. ['diabetes', 'hypertension']")
     previous_procedure_outcomes: Optional[str] = Field(None,
         description="Short narrative of past relevant procedures")
-
+    
 
 class TreatmentOutcomeResponse(BaseModel):
+    """Lean response for the list dashboard"""
+    id: int = Field(..., description="The DB primary key to fetch details later")
     patient_id: int
     procedure_name: str
-    success_probability: float = Field(..., ge=0.0, le=100.0,
-        description="Percentage probability of success (0–100)")
-    confidence_level: str = Field(...,
-        description="e.g. 'High', 'Medium', 'Low' model confidence")
-    key_factors: str = Field(...,
-        description="Main factors influencing the prediction")
-    recommendation: str = Field(...,
-        description="LLM-generated recommendation for the dentist")
-    generated_at: datetime = Field(default_factory=datetime.now(timezone.utc))
+    success_probability: float
+    key_factors: str
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    
+    
+class TreatmentOutcomeDetailResponse(BaseModel):
+    """Detailed response for the specific prediction fetch"""
+    id: int
+    patient_id: int
+    procedure_name: str
+    success_probability: float
+    key_factors: str
+    confidence_level: str
+    recommendation: str
+    generated_at: datetime
+    
+    
+class LLMProcedureOutcome(BaseModel):
+    procedure_name: str
+    success_probability: float = Field(..., description="0.0 to 100.0")
+    key_factors: str
+    confidence_level: str
+    recommendation: str = Field(
+        ..., 
+        description="Clinical procedural recommendations ONLY. No generic preventive hygiene."
+    )
 
+class LLMTreatmentOutcomeList(BaseModel):
+    outcomes: List[LLMProcedureOutcome]
+    
 
 # ---------------------------------------------------------------------------
 # 3. Disease Progression Forecasting

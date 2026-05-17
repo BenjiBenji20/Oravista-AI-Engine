@@ -47,3 +47,4 @@ class PatientCheckupAgent:
         parsed_result = LLMCheckupAssessment.model_validate_json(raw_text)
         
         return parsed_result, prompt, raw_text
+    
