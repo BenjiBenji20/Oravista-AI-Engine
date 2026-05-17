@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from src.models.model import PatientAnalytics, OralHealthRiskScore, AnalyticsPromptLog
+from sqlalchemy.orm import joinedload
+from src.models.model import PatientAnalytics, OralHealthRiskScore, AnalyticsPromptLog, User
 from src.schemas.schema import OralHealthRiskRequest
 
 class PatientRepository:
@@ -8,8 +9,41 @@ class PatientRepository:
         self.db = db
 
     async def get_patient_analytics(self, patient_id: int) -> PatientAnalytics | None:
-        result = await self.db.execute(select(PatientAnalytics).where(PatientAnalytics.patient_id == patient_id))
+        result = await self.db.execute(
+            select(PatientAnalytics)
+            .where(PatientAnalytics.patient_id == patient_id)
+            .order_by(PatientAnalytics.created_at.desc()) # Newest first
+            .limit(1)
+        )
         return result.scalar_one_or_none()
+    
+    
+    async def get_patient_analytics_with_profile(self, patient_id: int):
+        """
+        Retrieves the most recent analytics joined with the User profile.
+        """
+        result = await self.db.execute(
+            select(PatientAnalytics)
+            .options(joinedload(PatientAnalytics.patient))
+            .where(PatientAnalytics.patient_id == patient_id)
+            .order_by(PatientAnalytics.created_at.desc()) # Newest first
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
+
+    async def get_patient_oral_health_risk(self, patient_id: int) -> OralHealthRiskScore | None:
+        """
+        Retrieves the latest AI-generated risk assessment.
+        """
+        result = await self.db.execute(
+            select(OralHealthRiskScore)
+            .where(OralHealthRiskScore.patient_id == patient_id)
+            .order_by(OralHealthRiskScore.generated_at.desc()) # Newest first
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
 
     async def upsert_patient_analytics(self, request: OralHealthRiskRequest) -> PatientAnalytics:
         analytics = await self.get_patient_analytics(request.patient_id)
