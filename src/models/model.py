@@ -124,7 +124,7 @@ class OralHealthRiskScore(Base):
 
     risk_score = Column(SmallInteger, nullable=False)           # 0–100
     health_grade = Column(String(30), nullable=False)           # e.g. "High Risk"
-    risk_level = Column(Enum(RiskLevelEnum), nullable=False)
+    risk_level = Column(Enum(RiskLevelEnum, name="risk_level_enum"), nullable=False)
     disease_progression_forecast = Column(Text, nullable=False)
     recommended_action = Column(Text, nullable=False)
     generated_at = Column(
@@ -162,7 +162,7 @@ class TreatmentOutcomePrediction(Base):
 
     procedure_name = Column(String(150), nullable=False)
     success_probability = Column(Numeric(5, 2), nullable=False)  # 0.00–100.00
-    confidence_level = Column(Enum(RiskLevelEnum), nullable=False)
+    confidence_level = Column(Enum(RiskLevelEnum, name="risk_level_enum"), nullable=False)
     key_factors = Column(Text, nullable=False)
     recommendation = Column(Text, nullable=False)
     generated_at = Column(
@@ -199,8 +199,8 @@ class DiseaseProgressionForecast(Base):
     )
 
     current_condition = Column(String(200), nullable=False)
-    severity_at_start = Column(Enum(RiskLevelEnum), nullable=False)
-    projected_severity = Column(Enum(RiskLevelEnum), nullable=False)
+    severity_at_start = Column(Enum(RiskLevelEnum, name="risk_level_enum"), nullable=False)
+    projected_severity = Column(Enum(RiskLevelEnum, name="risk_level_enum"), nullable=False)
     months_untreated = Column(SmallInteger, nullable=False)
     progression_forecast = Column(Text, nullable=False)
     recommended_intervention = Column(Text, nullable=False)
@@ -287,7 +287,7 @@ class RiskStratificationPatientRow(Base):
     )
 
     risk_score = Column(SmallInteger, nullable=False)
-    risk_level = Column(Enum(RiskLevelEnum), nullable=False)
+    risk_level = Column(Enum(RiskLevelEnum, name="risk_level_enum"), nullable=False)
     last_visit_date = Column(Date, nullable=True)
 
     # Relationships
@@ -322,7 +322,7 @@ class NoShowPrediction(Base):
     branch = Column(String(100), nullable=True)
 
     # Appointment context
-    appointment_day_of_week = Column(Enum(AppointmentDayEnum), nullable=False)
+    appointment_day_of_week = Column(Enum(AppointmentDayEnum, name="appointment_day_enum"), nullable=False)
     appointment_time_of_day = Column(String(20), nullable=True)
     days_until_appointment = Column(SmallInteger, nullable=False)
     reminder_sent = Column(Boolean, nullable=False, default=False)
@@ -335,7 +335,7 @@ class NoShowPrediction(Base):
 
     # LLM result
     no_show_probability = Column(Numeric(5, 2), nullable=False)
-    risk_flag = Column(Enum(RiskLevelEnum), nullable=False)
+    risk_flag = Column(Enum(RiskLevelEnum, name="risk_level_enum"), nullable=False)
     reasoning = Column(Text, nullable=False)
     automated_reminder_triggered = Column(Boolean, nullable=False, default=False)
     generated_at = Column(
@@ -366,7 +366,7 @@ class AnalyticsPromptLog(Base):
     __tablename__ = "analytics_prompt_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    module = Column(Enum(AnalyticsModuleEnum), nullable=False)
+    module = Column(Enum(AnalyticsModuleEnum, name="analytics_module_enum"), nullable=False)
     reference_id = Column(Integer, nullable=False)              # soft FK — polymorphic
     prompt_sent = Column(Text, nullable=False)
     raw_llm_response = Column(Text, nullable=False)
@@ -385,7 +385,7 @@ class User(Base):
     first_name = Column(String(20), nullable=False)
     last_name = Column(String(20), nullable=False)
     email = Column(String(50), nullable=False, unique=True)
-    role = Column(Enum(UserRoleEnum), nullable=False, default=UserRoleEnum.patient)
+    role = Column(Enum(UserRoleEnum, name="user_role_enum"), nullable=False, default=UserRoleEnum.patient)
     branch = Column(String(100), nullable=True, default="Main Branch")
     password = Column(String(255), nullable=False)
     created_at = Column(

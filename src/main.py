@@ -4,6 +4,7 @@ from src.database.session import engine
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.model import *
+from sqlalchemy import text
 
 @asynccontextmanager
 async def life_span(app: FastAPI):
@@ -11,7 +12,8 @@ async def life_span(app: FastAPI):
         # Create database tables
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-            print("Tables created successfully!")
+            await conn.execute(text("SELECT 1"))
+            print("\n\nPostgres connected successfully!")
         
         yield
         
