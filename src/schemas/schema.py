@@ -309,3 +309,22 @@ class AnalyticsPromptLog(BaseModel):
     model_used: str = "claude-sonnet-4-20250514"
     created_at: datetime = Field(default_factory=datetime.now(timezone.utc))
     
+    
+# =================================================
+# DENTISTS SCHEMA
+# =================================================
+from pydantic import BaseModel
+from typing import List, Optional
+
+class DentistDashboardPatient(BaseModel):
+    patient_id: int
+    name: str        # Combined first_name and last_name
+    score: int
+    issue: str       # Maps to health_grade
+    progression: str # Maps to disease_progression_forecast
+    action: str      # Maps to recommended_action
+
+class DentistDashboardResponse(BaseModel):
+    dentist_id: int
+    patients: List[DentistDashboardPatient]
+    
