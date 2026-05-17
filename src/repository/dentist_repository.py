@@ -24,7 +24,6 @@ class DentistRepository:
             .join(OralHealthRiskScore, User.id == OralHealthRiskScore.patient_id)
             .where(
                 User.role == "patient",
-                User.branch == dentist_branch,
                 OralHealthRiskScore.id.in_(subquery)
             )
         )
