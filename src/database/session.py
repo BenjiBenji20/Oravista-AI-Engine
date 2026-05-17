@@ -8,9 +8,14 @@ engine = create_async_engine(
     echo=settings.DEBUG,
     pool_size=5,              
     max_overflow=10,
-    pool_pre_ping=True,       # Verify connections before using
-    pool_recycle=3600,        # Recycle connections every hour
+    pool_pre_ping=True,       
+    pool_recycle=3600,
+    connect_args={
+        "prepared_statement_cache_size": 0,
+        "statement_cache_size": 0
+    }
 )
+
 
 async_session = async_sessionmaker(engine, expire_on_commit=False)
 
