@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
 from src.database.session import engine
-
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.model import *
 
@@ -25,6 +25,14 @@ app = FastAPI(
     title="Capstone project module b",
     lifespan=life_span
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins="http://localhost:3000", # change according to react app
+    allow_credentials=True,
+    allow_methods=["*"], # GET, POST, PUT, DELETE, OPTIONS
+    allow_headers=["Authorization", "Content-Type"] # Authorization, Content-Type, etc.
+  )
 
 from src.routers.patient_routes import router as patient_router
 app.include_router(patient_router)

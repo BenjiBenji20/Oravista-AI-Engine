@@ -84,7 +84,7 @@ class OralHealthRiskRequest(BaseModel):
     `patient_id` maps to `users.id`.
     """
     patient_id: int                            # users.id (int, not str)
-    age: int = Field(..., ge=1, le=120)        # users.age
+    age: Optional[int] = Field(None, description="Patient age in years")
     sex: Optional[str] = None                  # users.sex
     blood_type: Optional[str] = None           # users.blood_type
     allergies: Optional[str] = None            # users.allergies (TEXT)

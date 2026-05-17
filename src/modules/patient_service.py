@@ -32,7 +32,7 @@ class PatientService:
                 disease_progression_forecast=assessment.disease_progression_forecast,
                 recommended_action=assessment.recommended_action
             )
-            saved_score = await self.repository.upsert_oral_health_risk_score(score_model)
+            saved_score = await self.repository.save_oral_health_risk_score(score_model)
 
             # 4. Save the prompt log
             prompt_log = AnalyticsPromptLog(
@@ -42,7 +42,7 @@ class PatientService:
                 raw_llm_response=raw_response,
                 model_used=self.agent.model_name
             )
-            await self.repository.upsert_prompt_log(prompt_log)
+            await self.repository.save_prompt_log(prompt_log)
 
             # 5. Build and return the response
             response = OralHealthRiskResponse(
