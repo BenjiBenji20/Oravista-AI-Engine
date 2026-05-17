@@ -1,9 +1,11 @@
+from decimal import Decimal
+
 from fastapi import HTTPException
 
 from src.agents.treatment_prediction_agent import TreatmentPredictionAgent
-from src.models.model import AnalyticsModuleEnum, AnalyticsPromptLog, TreatmentOutcomePrediction
+from src.models.model import AnalyticsModuleEnum, AnalyticsPromptLog, RiskStratificationPatientRow, RiskStratificationReport, TreatmentOutcomePrediction
 from src.repository.dentist_repository import DentistRepository
-from src.schemas.schema import DentistDashboardPatient, DentistDashboardResponse, OralHealthRiskRequest,  TreatmentOutcomeDetailResponse, TreatmentOutcomeResponse
+from src.schemas.schema import *
 import logging
 
 logger = logging.getLogger(__name__)
@@ -113,4 +115,95 @@ class DentistService:
             recommendation=prediction.recommendation,
             generated_at=prediction.generated_at
         )
+
+
+    async def generate_risk_stratification(self, request: RiskStratificationRequest) -> RiskStratificationResponse:
+        try:
+            # 1. Fetch latest raw risk profile entries for the branch
+            raw_profiles = await self.repository.get_latest_patient_risk_profiles(request.branch)
+            total_patients = len(raw_profiles)
+
+            if total_patients == 0:
+                raise HTTPException(status_code=404, detail=f"No patients with completed risk scores found in branch: {request.branch}")
+
+            # 2. Segregate profiles into risk tiers based on their DB Enum string value
+            low_tier = [r for r in raw_profiles if r.OralHealthRiskScore.risk_level == "Low"]
+            med_tier = [r for r in raw_profiles if r.OralHealthRiskScore.risk_level == "Medium"]
+            high_tier = [r for r in raw_profiles if r.OralHealthRiskScore.risk_level == "High"]
+
+            # 3. Calculate mathematical percentages (Rounded cleanly to 2 decimal points)
+            low_pct = round((len(low_tier) / total_patients) * 100, 2)
+            med_pct = round((len(med_tier) / total_patients) * 100, 2)
+            
+            # Defensive math: force high tier adjustment to guarantee the sum equals exactly 100.00%
+            high_pct = round(100.00 - (low_pct + med_pct), 2)
+
+            # 4. Save aggregate snapshot report data to DB
+            db_report = RiskStratificationReport(
+                branch=request.branch,
+                timeframe_days=request.timeframe_days,
+                total_patients_analyzed=total_patients,
+                low_risk_count=len(low_tier),
+                medium_risk_count=len(med_tier),
+                high_risk_count=len(high_tier),
+                low_risk_pct=Decimal(str(low_pct)),
+                medium_risk_pct=Decimal(str(med_pct)),
+                high_risk_pct=Decimal(str(high_pct))
+            )
+            saved_report = await self.repository.save_stratification_report(db_report)
+
+            # 5. Build individual drill-down lookup mappings for every patient analyzed
+            for profile in raw_profiles:
+                patient_row = RiskStratificationPatientRow(
+                    report_id=saved_report.id,
+                    patient_id=profile.User.id,
+                    risk_score=profile.OralHealthRiskScore.risk_score,
+                    risk_level=profile.OralHealthRiskScore.risk_level,
+                    last_visit_date=None # Can hook to real last appointment date if available
+                )
+                self.repository.db.add(patient_row)
+            
+            # Commit the granular batch mapping rows
+            await self.repository.db.commit()
+
+            return RiskStratificationResponse(
+                id=saved_report.id,
+                branch=saved_report.branch,
+                timeframe_days=saved_report.timeframe_days,
+                total_patients_analyzed=saved_report.total_patients_analyzed,
+                low_risk_count=saved_report.low_risk_count,
+                medium_risk_count=saved_report.medium_risk_count,
+                high_risk_count=saved_report.high_risk_count,
+                low_risk_pct=float(saved_report.low_risk_pct),
+                medium_risk_pct=float(saved_report.medium_risk_pct),
+                high_risk_pct=float(saved_report.high_risk_pct),
+                generated_at=saved_report.generated_at
+            )
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error generating risk stratification: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to generate risk stratification report: {str(e)}")
+
+
+    async def get_patients_in_stratification_tier(self, report_id: int, risk_level: str) -> List[PatientRiskSummary]:
+        try:
+            # Fetch mapping rows from repository using our optimized relationship loader
+            rows = await self.repository.get_patients_by_tier(report_id, risk_level)
+            
+            # Map structural components into clean API summaries
+            return [
+                PatientRiskSummary(
+                    patient_id=row.patient_id,
+                    full_name=f"{row.patient.first_name} {row.patient.last_name}",
+                    risk_score=row.risk_score,
+                    risk_level=row.risk_level.value if hasattr(row.risk_level, 'value') else str(row.risk_level),
+                    last_visit_date=row.last_visit_date
+                )
+                for row in rows
+            ]
+        except Exception as e:
+            logger.error(f"Error extracting target tier patients: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to fetch drill-down patient profiles: {str(e)}")
         

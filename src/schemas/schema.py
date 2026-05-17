@@ -227,12 +227,10 @@ class DiseaseProgressionResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 class RiskStratificationRequest(BaseModel):
-    branch: Optional[str] = Field(None, max_length=100,
+    branch: Optional[str] = Field("Main Branch", max_length=100,
         description="Filter by users.branch; None = all branches")
     timeframe_days: int = Field(default=30, ge=1,
         description="Look-back window for scoring recent patients")
-    include_patient_list: bool = Field(default=False,
-        description="If True, response includes per-patient breakdown")
 
 
 class PatientRiskSummary(BaseModel):
@@ -245,24 +243,17 @@ class PatientRiskSummary(BaseModel):
 
 
 class RiskStratificationResponse(BaseModel):
-    branch: Optional[str] = None
+    id: int
+    branch: Optional[str]
     timeframe_days: int
     total_patients_analyzed: int
     low_risk_count: int
     medium_risk_count: int
     high_risk_count: int
-    low_risk_pct: float = Field(..., ge=0.0, le=100.0)
-    medium_risk_pct: float = Field(..., ge=0.0, le=100.0)
-    high_risk_pct: float = Field(..., ge=0.0, le=100.0)
-    high_risk_patients: Optional[List[PatientRiskSummary]] = None
-    generated_at: datetime = Field(default_factory=datetime.now(timezone.utc))
-
-    @model_validator(mode="after")
-    def percentages_sum_to_100(self) -> "RiskStratificationResponse":
-        total = self.low_risk_pct + self.medium_risk_pct + self.high_risk_pct
-        if self.total_patients_analyzed > 0 and not (99.9 <= total <= 100.1):
-            raise ValueError(f"Risk percentages must sum to ~100, got {total}")
-        return self
+    low_risk_pct: float
+    medium_risk_pct: float
+    high_risk_pct: float
+    generated_at: datetime
 
 
 # ---------------------------------------------------------------------------
@@ -335,9 +326,6 @@ class AnalyticsPromptLog(BaseModel):
 # =================================================
 # DENTISTS SCHEMA
 # =================================================
-from pydantic import BaseModel
-from typing import List, Optional
-
 class DentistDashboardPatient(BaseModel):
     patient_id: int
     name: str        # Combined first_name and last_name
