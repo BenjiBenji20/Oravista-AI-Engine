@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str | None = None
     POSTGRES_PORT: int | None = None
     POSTGRES_DATABASE: str | None = None
+    SUPABASE_URL: str | None = None
+    SUPABASE_SERVICE_ROLE_KEY: str | None = None
 
     GEMINI_API_KEY: str | None = None
     GEMINI_MODEL: str | None = None
