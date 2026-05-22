@@ -5,3 +5,5 @@ asyncpg
 pydantic
 pydantic-settings
 google-generativeai
+aiofiles
+python-multipart

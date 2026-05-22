@@ -43,5 +43,7 @@ app.add_middleware(
 
 from src.routers.patient_routes import router as patient_router
 from src.routers.dentist_routes import router as dentist_router
+from src.routers.diagnostic_imaging_router import router as diagnostic_imaging_router
 app.include_router(patient_router)
 app.include_router(dentist_router)
+app.include_router(diagnostic_imaging_router)
