@@ -8,3 +8,7 @@ google-generativeai
 aiofiles
 python-multipart
 supabase
+
+onnxruntime
+numpy
+opencv-python-headless

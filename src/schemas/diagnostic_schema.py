@@ -19,6 +19,7 @@ class DiagnosticUploadResponse(BaseModel):
     patient_id: int = Field(..., description="The associated patient's unique identifier.")
     file_path: str = Field(..., description="Storage destination public URL link of the uploaded dental scan image.")
     predictions: List[PathologyPrediction] = Field(..., description="List of all isolated conditions accompanied by localization spatial blocks.")
+    clinical_notes: str = Field(..., description="AI generated or recommended clinical advisory notes for the patient's digital record.")
     scan_date: datetime
 
 class UpdateAnnotationRequest(BaseModel):
