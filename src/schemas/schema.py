@@ -128,7 +128,7 @@ class OralHealthRiskResponse(BaseModel):
         description="LLM-generated narrative of likely disease progression")
     recommended_action: str = Field(...,
         description="LLM-generated personalised prevention plan")
-    generated_at: datetime = Field(default_factory=datetime.now(timezone.utc))
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 # ---------------------------------------------------------------------------

@@ -1,18 +1,27 @@
 from decimal import Decimal
-
+from datetime import datetime
 from fastapi import HTTPException
 
 from src.agents.treatment_prediction_agent import TreatmentPredictionAgent
 from src.agents.patient_agent import PatientCheckupAgent
-from src.models.model import AnalyticsModuleEnum, AnalyticsPromptLog, RiskStratificationPatientRow, RiskStratificationReport, TreatmentOutcomePrediction
+from src.models.model import *
 from src.repository.dentist_repository import DentistRepository
-from src.schemas.schema import *
+from src.repository.patient_repository import PatientRepository
+from typing import List
+from src.schemas.schema import (
+    DentistDashboardResponse, DentistDashboardPatient, 
+    OralHealthRiskRequest, TreatmentOutcomeResponse, 
+    TreatmentOutcomeDetailResponse, RiskStratificationRequest, 
+    RiskStratificationResponse, PatientRiskSummary,
+    OralHealthRiskResponse
+)
 import logging
 
 logger = logging.getLogger(__name__)
 class DentistService:
     def __init__(self, db):
         self.repository = DentistRepository(db)
+        self.patient_repository = PatientRepository(db)
         self.agent = TreatmentPredictionAgent()
         self.patient_agent = PatientCheckupAgent()  
 
@@ -215,7 +224,7 @@ class DentistService:
     async def process_checkup(self, request: OralHealthRiskRequest) -> OralHealthRiskResponse:
         try:
             # 1. Update/Save the patient analytics with the new checkup data
-            await self.repository.upsert_patient_analytics(request)
+            await self.patient_repository.upsert_patient_analytics(request)
 
             # 2. Call the patient_agent with the request data
             # Convert request to dict for LLM context
@@ -231,7 +240,7 @@ class DentistService:
                 disease_progression_forecast=assessment.disease_progression_forecast,
                 recommended_action=assessment.recommended_action
             )
-            saved_score = await self.repository.save_oral_health_risk_score(score_model)
+            saved_score = await self.patient_repository.save_oral_health_risk_score(score_model)
 
             # 4. Save the prompt log
             prompt_log = AnalyticsPromptLog(
@@ -241,7 +250,7 @@ class DentistService:
                 raw_llm_response=raw_response,
                 model_used=self.patient_agent.model_name
             )
-            await self.repository.save_prompt_log(prompt_log)
+            await self.patient_repository.save_prompt_log(prompt_log)
 
             # 5. Build and return the response
             response = OralHealthRiskResponse(
