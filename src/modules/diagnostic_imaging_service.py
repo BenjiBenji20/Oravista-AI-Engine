@@ -113,9 +113,19 @@ class DiagnosticImagingService:
                 detail=f"AI Diagnostic report entry with ID {diagnostic_id} cannot be isolated."
             )
 
+        # Copy the existing JSONB data structure safely
         updated_findings = dict(record.ai_findings) if record.ai_findings else {}
         updated_findings["human_verified"] = True
-        updated_findings["annotations"] = verified_findings
+
+        # Safely extract the raw array list regardless of whether the agent/client 
+        # sent it wrapped under an "annotations" key or as a direct body dict.
+        if "annotations" in verified_findings:
+            actual_array = verified_findings["annotations"]
+        else:
+            actual_array = verified_findings
+
+        # Enforce a uniform, flat array mapping inside the database column
+        updated_findings["annotations"] = actual_array
 
         return await self.repository.update_diagnostic_records(
             diagnostic_id=diagnostic_id,
