@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from supabase import create_client, Client
 
 from src.repository.diagnostic_imaging_repository import DiagnosticImagingRepository
-from src.schemas.diagnostic_schema import DiagnosticUploadResponse, PathologyPrediction
+from src.schemas.diagnostic_schema import DiagnosticUploadResponse, PathologyPrediction, BoundingBox
 from src.core.settings import settings
 
 # Initialize the Supabase Client
@@ -37,7 +37,7 @@ class DiagnosticImagingService:
         safe_filename = f"{secrets.token_hex(8)}{file_ext}"
 
         try:
-            # 3. Read raw bytes directly from memory without writing to a local server folder
+            # 3. Read raw bytes directly from memory
             file_bytes = await file.read()
 
             # 4. Upload the file stream directly to your Supabase Storage Bucket
@@ -57,16 +57,35 @@ class DiagnosticImagingService:
             )
 
         # 6. Run your AI Machine Learning Code Logic here
-        # (Using the identical structures matching your baseline configuration)
+        # Simulated Object Detection predictions generating normalized bounding boxes
         simulated_predictions = [
-            PathologyPrediction(class_id=0, name="Caries", confidence=round(random.uniform(0.75, 0.98), 2)),
-            PathologyPrediction(class_id=13, name="Bone Loss", confidence=round(random.uniform(0.60, 0.88), 2))
+            PathologyPrediction(
+                class_id=0, 
+                name="Caries", 
+                confidence=round(random.uniform(0.75, 0.98), 2),
+                box=BoundingBox(
+                    x_min=0.22,  # 22% from the left edge of the image
+                    y_min=0.45,  # 45% from the top edge of the image
+                    width=0.08,  # Box takes up 8% of the image's total width
+                    height=0.06  # Box takes up 6% of the image's total height
+                )
+            ),
+            PathologyPrediction(
+                class_id=13, 
+                name="Bone Loss", 
+                confidence=round(random.uniform(0.60, 0.88), 2),
+                box=BoundingBox(
+                    x_min=0.55, 
+                    y_min=0.62, 
+                    width=0.15, 
+                    height=0.05
+                )
+            )
         ]
-        simulated_gradcam_grid = [[round(random.uniform(0.0, 1.0), 3) for _ in range(7)] for _ in range(7)]
 
+        # Structure payload object maps to bind inside PostgreSQL JSONB formats natively
         ai_findings_payload = {
             "predictions": [p.model_dump() for p in simulated_predictions],
-            "gradcam_grid": simulated_gradcam_grid,
             "human_verified": False
         }
 
@@ -74,7 +93,7 @@ class DiagnosticImagingService:
         diagnostic_record = await self.repository.create_diagnostic_entry(
             patient_id=patient_id,
             file_name=file.filename,
-            file_path=public_url,  # Now correctly saves a public https:// link instead of a local path
+            file_path=public_url,
             ai_findings=ai_findings_payload
         )
 
@@ -83,7 +102,6 @@ class DiagnosticImagingService:
             patient_id=diagnostic_record.patient_id,
             file_path=public_url,
             predictions=simulated_predictions,
-            gradcam_grid=simulated_gradcam_grid,
             scan_date=diagnostic_record.scan_date
         )
 

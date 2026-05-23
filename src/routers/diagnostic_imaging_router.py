@@ -13,10 +13,9 @@ async def upload_dental_scan(
     db: AsyncSession = Depends(get_async_db)
 ):
     """
-    Ingests raw dental images, triggers the internal ResNet-50 inference pipeline,
-    computes Grad-CAM matrices, logs records, and outputs lightweight coordinate grids.
+    Ingests raw dental images, handles stateless streaming transfers to Supabase storage,
+    runs localized pathology object detection, and maps prediction bounding box arrays.
     """
-    # Restrict file extensions to valid image payloads to match model constraints
     ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png"}
     file_ext = file.filename.split(".")[-1].lower()
     if file_ext not in ALLOWED_EXTENSIONS:
