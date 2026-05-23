@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.modules.no_show_prediction_service import NoShowPredictionService
 from src.database.session import get_async_db
 from src.modules.dentist_service import DentistService
-from src.schemas.schema import DentistDashboardResponse, NoShowDashboardResponse, OralHealthRiskRequest, PatientRiskSummary, RiskStratificationRequest, RiskStratificationResponse, TreatmentOutcomeDetailResponse, TreatmentOutcomeResponse
+from src.schemas.schema import *
 
 router = APIRouter(prefix="/api/dentist", tags=["Dentist Dashboard"])
 
@@ -61,6 +61,18 @@ async def get_patients_by_risk_tier(
         
     service = DentistService(db)
     return await service.get_patients_in_stratification_tier(report_id, risk_level)
+
+
+@router.post("/check-up", response_model=OralHealthRiskResponse)
+async def health_test(
+    request: OralHealthRiskRequest,
+    db: AsyncSession = Depends(get_async_db)
+):
+    """
+    patient -> answer diagnostic tests -> llm -> response
+    """
+    service = DentistService(db)
+    return await service.process_checkup(request)
 
 
 @router.post("/dashboard/predict-no-show/{appointment_id}", response_model=NoShowDashboardResponse)

@@ -3,6 +3,7 @@ from decimal import Decimal
 from fastapi import HTTPException
 
 from src.agents.treatment_prediction_agent import TreatmentPredictionAgent
+from src.agents.patient_agent import PatientCheckupAgent
 from src.models.model import AnalyticsModuleEnum, AnalyticsPromptLog, RiskStratificationPatientRow, RiskStratificationReport, TreatmentOutcomePrediction
 from src.repository.dentist_repository import DentistRepository
 from src.schemas.schema import *
@@ -13,6 +14,8 @@ class DentistService:
     def __init__(self, db):
         self.repository = DentistRepository(db)
         self.agent = TreatmentPredictionAgent()
+        self.patient_agent = PatientCheckupAgent()  
+
 
     async def get_dentist_dashboard(self, dentist_id: int, branch: str) -> DentistDashboardResponse:
         # Fetch raw data from repo
@@ -100,6 +103,7 @@ class DentistService:
             logger.error(f"Error predicting treatment outcome: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Failed to predict treatment outcome: {str(e)}")
             
+
     async def get_prediction_details(self, patient_id: int, prediction_id: int) -> TreatmentOutcomeDetailResponse:
         prediction = await self.repository.get_treatment_prediction(prediction_id)
         if not prediction or prediction.patient_id != patient_id:
@@ -207,3 +211,53 @@ class DentistService:
             logger.error(f"Error extracting target tier patients: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Failed to fetch drill-down patient profiles: {str(e)}")
         
+
+    async def process_checkup(self, request: OralHealthRiskRequest) -> OralHealthRiskResponse:
+        try:
+            # 1. Update/Save the patient analytics with the new checkup data
+            await self.repository.upsert_patient_analytics(request)
+
+            # 2. Call the patient_agent with the request data
+            # Convert request to dict for LLM context
+            context = request.model_dump()
+            assessment, prompt, raw_response = await self.patient_agent.analyze_patient_risk(context)
+
+            # 3. Save the risk score
+            score_model = OralHealthRiskScore(
+                patient_id=request.patient_id,
+                risk_score=assessment.risk_score,
+                health_grade=assessment.health_grade,
+                risk_level=assessment.risk_level.value, # Need to use .value for the string
+                disease_progression_forecast=assessment.disease_progression_forecast,
+                recommended_action=assessment.recommended_action
+            )
+            saved_score = await self.repository.save_oral_health_risk_score(score_model)
+
+            # 4. Save the prompt log
+            prompt_log = AnalyticsPromptLog(
+                module=AnalyticsModuleEnum.oral_health_risk,
+                reference_id=saved_score.id,
+                prompt_sent=prompt,
+                raw_llm_response=raw_response,
+                model_used=self.patient_agent.model_name
+            )
+            await self.repository.save_prompt_log(prompt_log)
+
+            # 5. Build and return the response
+            response = OralHealthRiskResponse(
+                patient_id=request.patient_id,
+                risk_score=saved_score.risk_score,
+                health_grade=saved_score.health_grade,
+                risk_level=saved_score.risk_level,
+                disease_progression_forecast=saved_score.disease_progression_forecast,
+                recommended_action=saved_score.recommended_action,
+                generated_at=saved_score.generated_at
+            )
+            return response
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error in process_checkup: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to process checkup: {str(e)}")
+      
