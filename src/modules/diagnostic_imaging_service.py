@@ -193,6 +193,9 @@ class DiagnosticImagingService:
         elif 0.40 <= highest_score <= 0.48:
             trigger_fallback = True
             trigger_reason = "Trigger 3: Detections are clustered entirely inside the low-certainty gray-zone (0.40 to 0.48)."
+        elif len(local_detections) <= 2:
+            trigger_fallback = True
+            trigger_reason = "Trigger 4: Sparse local detections (2 or fewer) may indicate missed pathologies, activating fallback for safety."
 
         final_predictions = []
         final_notes = ""
