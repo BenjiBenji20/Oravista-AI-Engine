@@ -44,3 +44,17 @@ async def update_dentist_annotation(
         clinical_notes=payload.clinical_notes,
         verified_findings=payload.human_verified_findings
     )
+
+
+@router.get("/patient/{patient_id}/latest", response_model=AIDiagnosticResponse, status_code=status.HTTP_200_OK)
+async def get_latest_patient_diagnostic(
+    patient_id: int,
+    db: AsyncSession = Depends(get_async_db)
+):
+    """
+    Exposes a GET endpoint to pull down a patient's latest computed 
+    bounding box arrays and recommended clinical notes.
+    """
+    service = DiagnosticImagingService(db)
+    return await service.get_latest_patient_findings(patient_id)
+    

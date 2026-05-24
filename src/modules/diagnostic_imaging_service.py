@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from supabase import create_client, Client
 
 from src.repository.diagnostic_imaging_repository import DiagnosticImagingRepository
-from src.schemas.diagnostic_schema import DiagnosticUploadResponse, PathologyPrediction, BoundingBox
+from src.schemas.diagnostic_schema import DiagnosticUploadResponse, PathologyPrediction, BoundingBox, AIDiagnosticResponse
 from src.agents.diagnostic_imaging_agent import DiagnosticImagingAgent
 from src.core.settings import settings
 
@@ -290,3 +290,19 @@ class DiagnosticImagingService:
             clinical_notes=clinical_notes,
             ai_findings=updated_findings
         )
+
+    async def get_latest_patient_findings(self, patient_id: int) -> AIDiagnosticResponse:
+        """
+        Business logic orchestrator to isolate the latest diagnostic run.
+        Throws a clean 404 block if no historical metrics exist yet.
+        """
+        print(f"[DATA FLOW] Fetching chronological latest AI diagnostics row for Patient ID: {patient_id}")
+        
+        record = await self.repository.get_latest_diagnostic_by_patient(patient_id)
+        if not record:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No AI diagnostic running logs located for patient with ID {patient_id}."
+            )
+            
+        return record

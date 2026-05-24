@@ -1,5 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from typing import Optional
+from src.schemas.diagnostic_schema import AIDiagnosticResponse
 from sqlalchemy import update
 from src.models.model import User, PatientRecord, AIDiagnostic
 
@@ -54,3 +56,17 @@ class DiagnosticImagingRepository:
         await self.db.commit()
         return result.scalar_one()
         
+
+    async def get_latest_diagnostic_by_patient(self, patient_id: int) -> Optional[AIDiagnostic]:
+        """
+        Queries the database for the absolute latest AI diagnostic entry 
+        for a specific patient based on the chronological scan_date timestamp.
+        """
+        query = (
+            select(AIDiagnostic)
+            .where(AIDiagnostic.patient_id == patient_id)
+            .order_by(AIDiagnostic.scan_date.desc())
+            .limit(1)
+        )
+        result = await self.db.execute(query)
+        return result.scalar_one_or_none()
